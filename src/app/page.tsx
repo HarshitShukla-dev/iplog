@@ -1,103 +1,46 @@
-import Image from "next/image";
+import { headers } from 'next/headers';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+// This is an async Server Component
+async function IpLoggerPage() {
+    const headersList = await headers();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    // Standard headers to check for IP address.
+    // 'x-forwarded-for' can contain a list of IPs if the request passed through multiple proxies.
+    // The first IP in the list is usually the client's IP.
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip'); // Often set by reverse proxies like Nginx
+    const remoteAddr = headersList.get('remote-addr'); // May be the IP of the last proxy or the client
+
+    let clientIp: string | null = null;
+
+    if (forwardedFor) {
+        clientIp = forwardedFor.split(',')[0].trim();
+    } else if (realIp) {
+        clientIp = realIp.trim();
+    } else {
+        // 'remote-addr' is not directly available in `next/headers` in this manner for server components.
+        // In edge environments, `request.ip` might be available on an incoming `NextRequest` object.
+        // For standard server components, 'x-forwarded-for' or 'x-real-ip' (if your proxy sets it) are more reliable.
+        // If running directly on Node.js without a reverse proxy in front that sets x-forwarded-for,
+        // this might be trickier directly from `next/headers`.
+        // However, for typical deployments (Vercel, Docker with a proxy), x-forwarded-for is common.
+        console.log("'remote-addr' is not directly available via headers() in this context, rely on x-forwarded-for or x-real-ip.");
+    }
+
+    console.log('--- Client IP Information ---');
+    console.log('x-forwarded-for:', forwardedFor);
+    console.log('x-real-ip:', realIp);
+    console.log('Derived Client IP:', clientIp || 'IP Not Found');
+    console.log('remote-addr:', remoteAddr);
+    console.log('---------------------------');
+
+    return (
+        <div>
+            <h1>IP Logger Page</h1>
+            <p>Check the server console for the logged IP address.</p>
+            {clientIp && <p>Detected IP (for demo purposes, primarily from x-forwarded-for): {clientIp}</p>}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    );
 }
+
+export default IpLoggerPage;
